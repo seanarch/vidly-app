@@ -1,10 +1,11 @@
 import React, { Component } from 'react';
 import { getMovies } from '../services/fakeMovieService';
-import Like from './common/like';
 import Pagination from './common/pagination';
 import { paginate } from '../utils/paginate';
 import GenreFilter from './common/genrefilter';
 import { getGenres } from '../services/fakeGenreService';
+import MoviesTable from './moviesTable';
+import _ from 'lodash';
 
 class TableMovies extends Component {
     state = {
@@ -12,10 +13,11 @@ class TableMovies extends Component {
         pageSize: 4,
         currentPage: 1,
         genres: [],
+        sortColumn: { path: 'title', order: 'asc' }
     }
 
     componentDidMount() {
-        const genres = [{ name: "All Genres" }, ...getGenres()]
+        const genres = [{ _id: '', name: "All Genres" }, ...getGenres()]
         this.setState({ movies: getMovies(), genres })
     }
 
@@ -41,15 +43,28 @@ class TableMovies extends Component {
 
     }
 
+    handleSort = path => {
+        const sortColumn = { ...this.state.sortColumn }
+        if (sortColumn.path === path)
+            sortColumn.order = sortColumn.order === 'asc' ? 'desc' : 'asc';
+        else {
+            sortColumn.path = path;
+            sortColumn.order = 'asc'
+        }
+        this.setState({ sortColumn })
+    }
+
     render() {
         const { length: count } = this.state.movies;
-        const { pageSize, currentPage, selectedGenre, movies: allMovies } = this.state;
+        const { pageSize, currentPage, sortColumn, selectedGenre, movies: allMovies } = this.state;
 
         if (count === 0) return <p>There are no movies in the database.</p>
 
         const filtered = selectedGenre && selectedGenre._id ? allMovies.filter(m => m.genre._id === selectedGenre._id) : allMovies;
 
-        const movies = paginate(filtered, currentPage, pageSize);
+        const sorted = _.orderBy(filtered, [sortColumn.path], [sortColumn.order]);
+
+        const movies = paginate(sorted, currentPage, pageSize);
 
         return (
             <div className='row'>
@@ -61,33 +76,8 @@ class TableMovies extends Component {
                     <p>Showing {filtered.length} movies in the database.</p>
                     {movies.length ? (
                         <div>
+                            <MoviesTable movies={movies} onLike={this.handleLike} onDelete={this.handleDelete} onSort={this.handleSort} />
 
-                            <table className='table'>
-                                <thead>
-                                    <tr>
-                                        <th scope="col">Title</th>
-                                        <th scope="col">Genre</th>
-                                        <th scope="col">Stock</th>
-                                        <th scope="col">Rate</th>
-                                        <th scope="col"></th>
-                                        <th scope="col"></th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {movies.map((movie) => (
-                                        <tr key={movie._id}>
-                                            <th scope="row">{movie.title}</th>
-                                            <td>{movie.genre.name}</td>
-                                            <td>{movie.numberInStock}</td>
-                                            <td>{movie.dailyRentalRate}</td>
-                                            <td><Like liked={movie.liked} onClick={() => this.handleLike(movie)} /></td>
-                                            <td>
-                                                <button onClick={() => this.handleDelete(movie)} className="btn btn-danger btn-sm">Delete</button>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
                             <Pagination itemsCount={filtered.length} pageSize={pageSize} onPageChange={this.handlePageChange} currentPage={currentPage} />
                         </div>
 
