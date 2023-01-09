@@ -1,7 +1,6 @@
 import React from 'react'
 
-const GenreFilter = (props) => {
-    const { items, textProperty, valueProperty, onItemSelect, selectedItem } = props;
+const GenreFilter = ({ items, textProperty, valueProperty, onItemSelect, selectedItem }) => {
 
     return (
         <div className="list-group">
